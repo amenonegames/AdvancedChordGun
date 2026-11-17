@@ -1,6 +1,6 @@
 -- @description Advanced ChordGun (Borrowed Chords fork)
 -- @author del-paso (original), borrowed-chord fork
--- @version 5.1.0
+-- @version 5.1.1
 -- @about
 --   ### Advanced ChordGun v5 + Borrowed Chords
 --   Fork of del-paso/AdvancedChordGun (MIT), itself inspired by Pandabot's ChordGun.
@@ -10,6 +10,8 @@
 --     diatonic grid and included in the next-chord suggestion colouring
 --   - "Way back" colouring: after an out-of-scale chord the grid is re-scored
 --     for resolution, and the resolution targets get a cyan outline
+--   - Triads / 7ths switch for the panel (Dbmaj7, F7, Gm7 ...), and a magenta
+--     tag on grid cells that are borrowed from a parallel scale
 --   - Out-of-scale chord tones are flagged in the bottom panel
 --   - Harmonic Minor / Melodic Minor scales
 --   - Flat note names (Auto / # / b)
@@ -211,6 +213,9 @@ local function setTrailOn(v)    sv("trail",tostring(v)) end
 -- Out-of-scale (borrowed chords) panel
 local function getBorrowOn()    return gv("borrow","true")=="true" end
 local function setBorrowOn(v)   sv("borrow",tostring(v)) end
+-- Borrowed group shows seventh chords instead of triads
+local function getBorrow7()     return gv("borrow7","false")=="true" end
+local function setBorrow7(v)    sv("borrow7",tostring(v)) end
 -- Note names: 0=auto (by key), 1=sharps, 2=flats
 local function getNameMode()    return gn("names",0) end
 local function setNameMode(v)   sv("names",v) end
@@ -304,6 +309,28 @@ local function getDiatonicChordIdx(rootIdx, scaleIdx, degree)
   return 1
 end
 
+-- Seventh chords a scale degree can produce, by interval shape
+local SEVENTH_BY_SHAPE = {}
+do
+  local names = { ["Dominant 7"]=true, ["Major 7"]=true, ["Minor 7"]=true, ["Min/Maj 7"]=true,
+    ["Diminished 7"]=true, ["Half-Dim 7"]=true, ["Aug 7"]=true, ["Aug Maj 7"]=true }
+  for i, c in ipairs(ALL_CHORDS) do
+    if names[c.name] then SEVENTH_BY_SHAPE[table.concat(c.intervals, ",")] = i end
+  end
+end
+
+-- Index of the seventh chord stacked on a scale degree, or nil if the chord
+-- list has no such chord type.
+local function getDiatonicSeventhIdx(rootIdx, scaleIdx, degree)
+  local sn = getScaleNotes(rootIdx, scaleIdx)
+  local root = sn[degree]
+  local shape = {0}
+  for step = 2, 6, 2 do
+    shape[#shape+1] = (sn[((degree-1+step)%7)+1] - root) % 12
+  end
+  return SEVENTH_BY_SHAPE[table.concat(shape, ",")]
+end
+
 local function getScaleSet(rootIdx, scaleIdx)
   local set = {}
   for _, pc in ipairs(getScaleNotes(rootIdx, scaleIdx)) do set[pc] = true end
@@ -349,8 +376,10 @@ end
 
 local borrowCache = { key = "", data = nil }
 
--- Returns { modal = {...}, secdom = {...} }. Each entry:
---   rootPC, chordIdx, kind ("modal"|"sec"|"sub"), label, key, spell, rare
+-- Returns { modal = {...}, sevenths = {...}, secdom = {...}, gridTags = {...} }.
+-- Each entry: rootPC, chordIdx, kind ("modal"|"sec"|"sub"), label, key, spell,
+-- rare, quality (triad type 1-4 under the chord, used for resolution).
+-- gridTags maps rootPC*100+chordIdx to the source tag, for marking grid cells.
 local function getBorrowed(rootIdx, scaleIdx)
   local ckey = rootIdx .. ":" .. scaleIdx
   if borrowCache.key == ckey then return borrowCache.data end
@@ -360,6 +389,8 @@ local function getBorrowed(rootIdx, scaleIdx)
   local scaleSet = getScaleSet(rootIdx, scaleIdx)
   local diatonic = {}
   for d = 1, 7 do diatonic[sn[d]*10 + getDiatonicChordIdx(rootIdx, scaleIdx, d)] = true end
+
+  local gridTags = {}
 
   -- Modal interchange: triads of the parallel scales that this scale lacks
   local modal, seen = {}, {}
@@ -375,10 +406,11 @@ local function getBorrowed(rootIdx, scaleIdx)
           local semi = (ssn[d] - tonic) % 12
           local roman, acc = romanFor(d, semi, ci)
           modal[#modal+1] = {
-            rootPC = ssn[d], chordIdx = ci, kind = "modal", semi = semi,
+            rootPC = ssn[d], chordIdx = ci, kind = "modal", semi = semi, quality = ci,
             label = roman .. " " .. scales[src].tag, key = "m" .. k,
             spell = (acc ~= "") and acc or nil, rare = RARE_SOURCES[src] or false,
           }
+          gridTags[ssn[d]*100 + ci] = scales[src].tag
         end
       end
     end
@@ -408,14 +440,52 @@ local function getBorrowed(rootIdx, scaleIdx)
   end
   local subRoot = (tonic + 1) % 12
   if not sseen[subRoot] and not allInScale(subRoot, dom7, scaleSet) then
+    sseen[subRoot] = true
     secdom[#secdom+1] = {
       rootPC = subRoot, chordIdx = DOM7_IDX, kind = "sub",
       label = "subV7", key = "s" .. subRoot, spell = "b",
     }
   end
+  for _, e in ipairs(secdom) do gridTags[e.rootPC*100 + e.chordIdx] = e.label end
+
+  -- Modal interchange, seventh chords. The same triad can carry different
+  -- sevenths depending on the source (IV of major is maj7, IV of Dorian is 7),
+  -- so these are collected per chord, not per triad. Dominant sevenths that
+  -- the Dominants group already lists are left to that group.
+  local sevenths, vseen = {}, {}
+  for _, src in ipairs(BORROW_SOURCES) do
+    if src ~= scaleIdx then
+      local ssn = getScaleNotes(rootIdx, src)
+      for d = 1, 7 do
+        local si = getDiatonicSeventhIdx(rootIdx, src, d)
+        if si then
+          local k = ssn[d]*100 + si
+          local inDominants = (si == DOM7_IDX) and sseen[ssn[d]]
+          if not vseen[k] and not allInScale(ssn[d], ALL_CHORDS[si], scaleSet) then
+            vseen[k] = true
+            if not inDominants then
+              local ci = getDiatonicChordIdx(rootIdx, src, d)
+              local semi = (ssn[d] - tonic) % 12
+              local roman, acc = romanFor(d, semi, ci)
+              sevenths[#sevenths+1] = {
+                rootPC = ssn[d], chordIdx = si, kind = "modal", semi = semi, quality = ci,
+                label = roman .. " " .. scales[src].tag, key = "v" .. k,
+                spell = (acc ~= "") and acc or nil, rare = RARE_SOURCES[src] or false,
+              }
+              gridTags[k] = scales[src].tag
+            end
+          end
+        end
+      end
+    end
+  end
+  table.sort(sevenths, function(a, b)
+    if a.semi ~= b.semi then return a.semi < b.semi end
+    return a.chordIdx < b.chordIdx
+  end)
 
   borrowCache.key = ckey
-  borrowCache.data = { modal = modal, secdom = secdom }
+  borrowCache.data = { modal = modal, sevenths = sevenths, secdom = secdom, gridTags = gridTags }
   return borrowCache.data
 end
 
@@ -521,7 +591,7 @@ local function getReturnInfo(borrow, rootIdx, scaleIdx)
     cand[#cand+1] = (r + 11) % 12             -- down a semitone to the tonic
   else
     cand[#cand+1] = tonic                     -- home
-    local ci = borrow.chordIdx
+    local ci = borrow.quality or borrow.chordIdx
     if ci == 3 then
       cand[#cand+1] = (r + 1) % 12            -- diminished: leading-tone step up
     else
@@ -725,7 +795,8 @@ local function playChordAt(rootPC, chordIdx, octAdj, invAdj, borrow)
   if getInsertMode() and activeTake() then insertChord(midiNotes, vel) end
   lastPlayedRoot = rootPC
   lastPlayedPCs = getChordPitchClasses(rootPC, chordDef)
-  lastBorrow = borrow and { rootPC = rootPC, chordIdx = chordIdx, kind = borrow.kind } or nil
+  lastBorrow = borrow and { rootPC = rootPC, chordIdx = chordIdx, kind = borrow.kind,
+    quality = borrow.quality } or nil
   rebuildSuggestions(rootIdx, scaleIdx)
   local rootName = borrow and entryRootName(borrow) or NOTE_NAMES[rootPC+1]
   local chordText = rootName .. chordDef.display
@@ -1060,7 +1131,7 @@ local function drawBorrowPanel(startY)
 
   -- Pass 1: layout, so the panel background can be drawn under the buttons
   local groups = {
-    { title = "Borrowed", sub = "(modal mix)", list = data.modal },
+    { title = "Borrowed", sub = "(modal mix)", list = getBorrow7() and data.sevenths or data.modal },
     { title = "Dominants", sub = "(V7/x, subV7)", list = data.secdom },
   }
   local y = startY + titleH + 3
@@ -1087,11 +1158,33 @@ local function drawBorrowPanel(startY)
   local title = "OUT OF SCALE  -  not in "..NOTE_NAMES[rootIdx].." "..scales[scaleIdx].name
   drawText(pad+6,startY,gfx.w-2*pad-12,titleH,title,4)
   local titleW = gfx.measurestr(title)
-  gfx.setfont(1,"Arial",fs(9))
-  local hint = "after one of these, the grid shows the way back (cyan outline = resolution)"
-  -- Only when it fits beside the title
-  if titleW + gfx.measurestr(hint) + 40 < gfx.w - 2*pad then
-    drawText(pad+6,startY,gfx.w-2*pad-12,titleH,hint,6)
+
+  -- Triads / 7ths switch for the Borrowed group, at the right of the title bar
+  local segW = math.floor(52*ts+0.5); local segH = titleH - 4
+  local segY = startY + 2
+  local segX = gfx.w - pad - 4 - 2*segW
+  local use7 = getBorrow7()
+  local segs = { {label="Triads", on=not use7, value=false}, {label="7ths", on=use7, value=true} }
+  gfx.setfont(1,"Arial",fs(9),string.byte('b'))
+  for i, sg in ipairs(segs) do
+    local sx = segX + (i-1)*segW
+    local sHov = mouseIn(sx,segY,segW,segH)
+    if sg.on then
+      sc({0.10,0.05,0.09}); gfx.rect(sx,segY,segW,segH,true)
+      sc({1,1,1})
+    else
+      if sHov then gfx.set(1,1,1,0.25); gfx.rect(sx,segY,segW,segH,true) end
+      sc({0.10,0.05,0.09}); gfx.rect(sx,segY,segW,segH,false)
+    end
+    drawText(sx,segY,segW,segH,sg.label,5)
+    if mouseJustClicked() and sHov and not sg.on then setBorrow7(sg.value) end
+  end
+
+  gfx.setfont(1,"Arial",fs(9)); sc({0.10,0.05,0.09})
+  local hint = "cyan outline in the grid = way back"
+  -- Only when it fits between the title and the switch
+  if pad + 6 + titleW + 30 + gfx.measurestr(hint) < segX - 10 then
+    drawText(pad+6,startY,segX-10-(pad+6),titleH,hint,6)
   end
 
   for _, g in ipairs(groups) do
@@ -1199,6 +1292,7 @@ local function drawChordGrid(gridStartY)
 
   local diatonicIdx = {}
   for deg=1,7 do diatonicIdx[deg] = getDiatonicChordIdx(rootIdx,scaleIdx,deg) end
+  local gridTags = getBorrowOn() and getBorrowed(rootIdx, scaleIdx).gridTags or nil
 
   local drawY = scrollableY - GUI.scrollY
   GUI.hoveredRow = -1; GUI.hoveredDeg = -1
@@ -1255,6 +1349,14 @@ local function drawChordGrid(gridStartY)
                   end
                 end
               end
+            end
+
+            -- Borrowed from a parallel scale: magenta stripe and source tag
+            local borrowTag = gridTags and gridTags[scaleNotes[deg]*100 + chordIdx]
+            if borrowTag then
+              sc(C.borrow); gfx.rect(cx,drawY,3,rowH,true)
+              gfx.setfont(1,"Arial",fs(8))
+              drawText(cx,drawY,colW-4,rowH,borrowTag,6)
             end
 
             -- Way back: the diatonic chord on a resolution target

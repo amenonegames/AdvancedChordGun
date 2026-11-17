@@ -18,6 +18,10 @@ original `AdvancedChordGun.lua` is kept unchanged.
     Chords from rarely used sources (Lydian, Locrian) are dimmed.
   - **Dominants** -- secondary dominants (V7 of each major/minor degree) and the tritone
     substitute.
+  - **Triads / 7ths** switch in the panel title bar: the Borrowed group can show the
+    seventh chords of the same sources instead (`Dbmaj7`, `Fmaj7`, `Gm7b5` ...).
+- Grid cells that are borrowed from a parallel scale (for example `Bbmaj7` in C minor,
+  from Dorian) carry a magenta stripe and the source tag.
 - The existing green/yellow/orange next-chord tint also applies to these buttons.
 - **Way back** -- after an out-of-scale chord the grid is re-scored for resolution. The
   diatonic chords it resolves to get a cyan outline and the top tint, and their column

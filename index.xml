@@ -1,60 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" name="del-paso ReaScripts">
+<index version="1" name="amenonegames ReaScripts">
   <category name="MIDI Editor">
-    <reapack name="AdvancedChordGun.lua" type="script" desc="Advanced ChordGun">
+    <reapack name="AdvancedChordGun_Borrow.lua" type="script" desc="Advanced ChordGun + Borrowed Chords">
       <metadata>
         <description><![CDATA[
-# Advanced ChordGun
+# Advanced ChordGun + Borrowed Chords
 
-An expanded chord composition tool for REAPER inspired by Pandabot's ChordGun.
-50+ chord types, intelligent next-chord suggestions, trailing chord history,
-humanized arpeggiation, chord finder with piano, and drag-to-assign key bindings.
+A fork of del-paso's Advanced ChordGun (itself inspired by Pandabot's ChordGun)
+that adds out-of-scale chord suggestions. Installs next to the original and
+shares its per-project settings.
 
-## Features
+## Added in this fork
 
-- 50+ chord types: triads, 6ths, 7ths, 9ths, 11ths, 13ths, altered dominants, and extended jazz voicings up to 10 notes
-- Full scrollable chord grid showing every chord type on every scale degree at once, organized by category
-- Next-chord suggestion engine that lights up the grid based on harmonic compatibility
-- Current chord gold highlight and trailing chord history showing your harmonic path
-- Arpeggiate mode with adjustable delay and Round Robin humanize for organic timing/velocity
-- Per-degree key bindings with independent octave offset and inversion per degree
-- Drag chords from the grid to degree slots to assign them to number keys
-- 3-octave chord finder piano for identifying chords by clicking notes
-- 7 modes: Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian
-- Adjustable text size (S/M/L/XL)
-- Window size and position persist between sessions
-- All settings persist with the project
+- OUT OF SCALE panel above the grid, in its own magenta frame: borrowed triads
+  from the parallel scales (bII Phr, IV Maj ...), secondary dominants (V7/x)
+  and the tritone substitute (subV7), with the same next-chord tint as the grid
+- Way back: after an out-of-scale chord the grid is re-scored for resolution;
+  the diatonic chords it resolves to get a cyan outline
+- OUT OF SCALE badge and marked chord tones for any chord with outside notes
+- Harmonic Minor and Melodic Minor scales
+- Flat note names (Names: Auto / # / b)
+
+## From the original
+
+- 50+ chord types on a scrollable grid, every type on every scale degree
+- Next-chord suggestion tint, current chord highlight and chord trail
+- Arpeggiate mode with Round Robin humanize
+- Per-degree key bindings with octave offset and inversion, drag to assign
+- 3-octave chord finder piano
+- Adjustable text size (S/M/L/XL); settings persist with the project
 
 ## Keyboard Shortcuts
 
 - 1-7: Play assigned chord for that scale degree
 - 0: Stop all notes
 - A: Toggle arpeggiate
+- B: Toggle the OUT OF SCALE panel
 - Up/Down: Scroll grid
 - Esc: Close
 
 ## Source
 
-https://github.com/del-paso/AdvancedChordGun
+https://github.com/amenonegames/AdvancedChordGun
+(original: https://github.com/del-paso/AdvancedChordGun)
         ]]></description>
-        <link rel="website">https://github.com/del-paso/AdvancedChordGun</link>
+        <link rel="website">https://github.com/amenonegames/AdvancedChordGun</link>
       </metadata>
-      <version name="2.0" author="del-paso" time="2026-04-19T00:00:00Z">
+      <version name="5.1.0" author="amenonegames (fork of del-paso)" time="2026-11-17T19:20:00Z">
         <changelog><![CDATA[
-v2.0:
-- Per-degree octave offset and inversion controls
-- Drag-and-drop chord assignment from grid to degree slots
-- 3-octave chord finder piano with individual key highlighting
-- Adjustable text size (S/M/L/XL) with +/- controls
-- Window size and position persist between sessions
-- Trail/Arp toggle overlap bug fixed
-- Clear button for chord finder redesigned as proper button
+First release of the fork, based on Advanced ChordGun v5.0:
+- OUT OF SCALE panel: modal-interchange triads, secondary dominants, tritone substitute
+- Way back: resolution-aware grid tint and cyan outline after an out-of-scale chord
+- Out-of-scale chord tones flagged in the bottom panel
+- Harmonic Minor and Melodic Minor scales
+- Flat note names (Auto / # / b)
         ]]></changelog>
-        <source main="main midi_editor">https://github.com/del-paso/AdvancedChordGun/raw/main/AdvancedChordGun.lua</source>
-      </version>
-      <version name="1.0" author="del-paso" time="2026-04-11T00:00:00Z">
-        <changelog><![CDATA[Initial release.]]></changelog>
-        <source main="main midi_editor">https://github.com/del-paso/AdvancedChordGun/raw/main/AdvancedChordGun.lua</source>
+        <source main="main midi_editor">https://github.com/amenonegames/AdvancedChordGun/raw/db46d26cecbfd75bb4120504403d1bb70140b5ca/AdvancedChordGun_Borrow.lua</source>
       </version>
     </reapack>
   </category>

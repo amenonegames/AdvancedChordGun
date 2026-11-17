@@ -1,3 +1,47 @@
+# Advanced ChordGun + Borrowed Chords
+
+A fork of [del-paso/AdvancedChordGun](https://github.com/del-paso/AdvancedChordGun) that adds
+out-of-scale chord suggestions. The fork's script is `AdvancedChordGun_Borrow.lua`; the
+original `AdvancedChordGun.lua` is kept unchanged.
+
+![borrowed chords panel](Screenshot_Borrow.png)
+
+*(Preview rendered from the script's draw calls, not a REAPER screenshot.)*
+
+## What this fork adds
+
+- **OUT OF SCALE panel** above the grid, in its own magenta frame so it cannot be mistaken
+  for the diatonic grid. Each button shows the chord, its numeral and where it is borrowed
+  from (`bII Phr`, `IV Maj`, `V7/iv`, `subV7`):
+  - **Borrowed** -- triads of the parallel scales (major, natural / harmonic / melodic minor,
+    Dorian, Phrygian, Lydian, Mixolydian, Locrian) that the current scale does not have.
+    Chords from rarely used sources (Lydian, Locrian) are dimmed.
+  - **Dominants** -- secondary dominants (V7 of each major/minor degree) and the tritone
+    substitute.
+- The existing green/yellow/orange next-chord tint also applies to these buttons.
+- **Way back** -- after an out-of-scale chord the grid is re-scored for resolution. The
+  diatonic chords it resolves to get a cyan outline and the top tint, and their column
+  headers a cyan underline. Playing a diatonic chord clears it.
+- The chord name turns magenta with an **OUT OF SCALE** badge whenever the last chord has
+  tones outside the scale, and those chord-tone buttons are marked.
+- **Harmonic Minor** and **Melodic Minor** scales.
+- **Flat note names** -- `Names: Auto / # / b` (Auto spells flat keys with flats).
+- **B** toggles the panel.
+
+### Install this fork with ReaPack
+
+1. In REAPER, go to **Extensions → ReaPack → Import repositories...**
+2. Paste this URL: `https://raw.githubusercontent.com/amenonegames/AdvancedChordGun/main/index.xml`
+3. Go to **Extensions → ReaPack → Browse packages**, search "Borrowed", and install
+   **Advanced ChordGun + Borrowed Chords**
+
+It installs as a separate package and can stay installed next to the original. Both read
+the same per-project settings.
+
+---
+
+Everything below is the original README.
+
 # Advanced ChordGun
 
 An expanded chord composition tool for REAPER, inspired by Pandabot's ChordGun.

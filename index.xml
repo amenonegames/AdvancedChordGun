@@ -17,6 +17,8 @@ shares its per-project settings.
   and the tritone substitute (subV7), with the same next-chord tint as the grid
 - Way back: after an out-of-scale chord the grid is re-scored for resolution;
   the diatonic chords it resolves to get a cyan outline
+- Triads / 7ths switch for the borrowed chords (Dbmaj7, Fmaj7, Gm7b5 ...)
+- Grid cells borrowed from a parallel scale carry a magenta stripe and source tag
 - OUT OF SCALE badge and marked chord tones for any chord with outside notes
 - Harmonic Minor and Melodic Minor scales
 - Flat note names (Names: Auto / # / b)
@@ -46,6 +48,13 @@ https://github.com/amenonegames/AdvancedChordGun
         ]]></description>
         <link rel="website">https://github.com/amenonegames/AdvancedChordGun</link>
       </metadata>
+      <version name="5.1.1" author="amenonegames (fork of del-paso)" time="2026-11-17T19:32:32Z">
+        <changelog><![CDATA[
+- Triads / 7ths switch in the OUT OF SCALE panel: borrowed seventh chords (Dbmaj7, Fmaj7, Gm7b5 ...)
+- Grid cells borrowed from a parallel scale get a magenta stripe and the source tag
+        ]]></changelog>
+        <source main="main midi_editor">https://github.com/amenonegames/AdvancedChordGun/raw/1b7fd9e2f42e132b18ad137cdb8bfb0e41fde87d/AdvancedChordGun_Borrow.lua</source>
+      </version>
       <version name="5.1.0" author="amenonegames (fork of del-paso)" time="2026-11-17T19:20:00Z">
         <changelog><![CDATA[
 First release of the fork, based on Advanced ChordGun v5.0:

@@ -34,6 +34,8 @@ shares its per-project settings.
 
 ## Keyboard Shortcuts
 
+- Click: audition / Shift+click: audition and insert
+- Enter: Insert the chord that was auditioned last
 - 1-7: Play assigned chord for that scale degree
 - 0: Stop all notes
 - A: Toggle arpeggiate
@@ -48,6 +50,13 @@ https://github.com/amenonegames/AdvancedChordGun
         ]]></description>
         <link rel="website">https://github.com/amenonegames/AdvancedChordGun</link>
       </metadata>
+      <version name="5.1.2" author="amenonegames (fork of del-paso)" time="2026-11-18T01:50:22Z">
+        <changelog><![CDATA[
+- Click auditions, Shift+click inserts (as in Pandabot's ChordGun); Enter inserts the last auditioned chord
+- Insert button cycles INS:SHIFT (default) / INS:CLICK (previous behaviour) / INS:OFF
+        ]]></changelog>
+        <source main="main midi_editor">https://github.com/amenonegames/AdvancedChordGun/raw/03e1a752eb9d22f6c79d73dc2b98dfc271e23f25/AdvancedChordGun_Borrow.lua</source>
+      </version>
       <version name="5.1.1" author="amenonegames (fork of del-paso)" time="2026-11-17T19:32:32Z">
         <changelog><![CDATA[
 - Triads / 7ths switch in the OUT OF SCALE panel: borrowed seventh chords (Dbmaj7, Fmaj7, Gm7b5 ...)

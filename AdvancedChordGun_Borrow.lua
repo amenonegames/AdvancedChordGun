@@ -1,6 +1,6 @@
 -- @description Advanced ChordGun (Borrowed Chords fork)
 -- @author del-paso (original), borrowed-chord fork
--- @version 5.1.1
+-- @version 5.1.2
 -- @about
 --   ### Advanced ChordGun v5 + Borrowed Chords
 --   Fork of del-paso/AdvancedChordGun (MIT), itself inspired by Pandabot's ChordGun.
@@ -12,6 +12,8 @@
 --     for resolution, and the resolution targets get a cyan outline
 --   - Triads / 7ths switch for the panel (Dbmaj7, F7, Gm7 ...), and a magenta
 --     tag on grid cells that are borrowed from a parallel scale
+--   - Click auditions, Shift+click inserts (as in Pandabot's ChordGun);
+--     Enter inserts the chord that was auditioned last
 --   - Out-of-scale chord tones are flagged in the bottom panel
 --   - Harmonic Minor / Melodic Minor scales
 --   - Flat note names (Auto / # / b)
@@ -199,8 +201,24 @@ local function getVelocity()    return gn("vel",96) end
 local function setVelocity(v)   sv("vel",v) end
 local function getInversion()   return gn("inv",0) end
 local function setInversion(v)  sv("inv",v) end
-local function getInsertMode()  return gv("ins","true")=="true" end
-local function setInsertMode(v) sv("ins",tostring(v)) end
+-- When a click also writes MIDI into the editor:
+--   "shift"  only with Shift held (plain click auditions) - default
+--   "always" every click, the behaviour of the original script
+--   "off"    never
+local INSERT_WHEN = { "shift", "always", "off" }
+local INSERT_WHEN_LABELS = { shift = "INS:SHIFT", always = "INS:CLICK", off = "INS:OFF" }
+local function getInsertWhen()
+  local v = gv("insw","shift")
+  if INSERT_WHEN_LABELS[v] then return v end
+  return "shift"
+end
+local function setInsertWhen(v) sv("insw",v) end
+-- Whether the action happening right now should insert into the MIDI editor
+local function shouldInsert()
+  local when = getInsertWhen()
+  if when == "always" then return true end
+  return when == "shift" and (gfx.mouse_cap & 8) ~= 0
+end
 local function getArpMode()     return gv("arp","false")=="true" end
 local function setArpMode(v)    sv("arp",tostring(v)) end
 local function getArpDelay()    return gn("arpms",35) end
@@ -792,7 +810,7 @@ local function playChordAt(rootPC, chordIdx, octAdj, invAdj, borrow)
   local chordDef = ALL_CHORDS[chordIdx]
   local midiNotes = buildChordMIDI(rootMidi, chordDef, inv)
   previewChord(midiNotes, vel)
-  if getInsertMode() and activeTake() then insertChord(midiNotes, vel) end
+  if shouldInsert() and activeTake() then insertChord(midiNotes, vel) end
   lastPlayedRoot = rootPC
   lastPlayedPCs = getChordPitchClasses(rootPC, chordDef)
   lastBorrow = borrow and { rootPC = rootPC, chordIdx = chordIdx, kind = borrow.kind,
@@ -958,12 +976,17 @@ local function drawTopControls()
     if invIH and inv<4 then setInversion(inv+1) end
   end; x=x+64
 
-  -- Insert toggle
-  local insMode = getInsertMode(); local insHov = mouseIn(x,y,72,btnH)
-  sc(insMode and C.green or C.btnNorm); drawRR(x,y,72,btnH,3,true)
+  -- Insert mode: Shift+click / every click / off
+  local insWhen = getInsertWhen(); local insHov = mouseIn(x,y,72,btnH)
+  sc(insWhen=="always" and C.green or (insWhen=="shift" and C.accent or C.btnNorm))
+  drawRR(x,y,72,btnH,3,true)
   sc({1,1,1}); gfx.setfont(1,"Arial",fs(10),string.byte('b'))
-  drawText(x,y,72,btnH,insMode and "INSERT ON" or "INSERT OFF",5)
-  if mouseJustClicked() and insHov then setInsertMode(not insMode) end; x=x+78
+  drawText(x,y,72,btnH,INSERT_WHEN_LABELS[insWhen],5)
+  if mouseJustClicked() and insHov then
+    for i, v in ipairs(INSERT_WHEN) do
+      if v == insWhen then setInsertWhen(INSERT_WHEN[(i % #INSERT_WHEN) + 1]); break end
+    end
+  end; x=x+78
 
   -- Arp toggle
   local arpMode = getArpMode(); local arpHov = mouseIn(x,y,60,btnH)
@@ -1466,7 +1489,7 @@ local function drawBottomPanel(panelY)
         if mouseJustClicked() and hover then
           stopAllNotes(); reaper.StuffMIDIMessage(0,0x90,note,vel)
           notesThatArePlaying[#notesThatArePlaying+1] = note
-          if getInsertMode() and activeTake() then
+          if shouldInsert() and activeTake() then
             local take = activeTake(); local cursorPos = reaper.GetCursorPosition()
             local sPPQ = reaper.MIDI_GetPPQPosFromProjTime(take,cursorPos)
             local gQN = reaper.MIDI_GetGrid(take)
@@ -1610,7 +1633,7 @@ local function drawBottomPanel(panelY)
   -- Help
   gfx.setfont(1,"Arial",fs(8)); sc(C.textDim)
   drawText(pad,gfx.h-14,gfx.w-2*pad,12,
-    "Keys 1-7: play degree chord | 0: stop | A: toggle arp | B: out-of-scale panel | Drag grid cell to degree slot to assign | Esc: close",0)
+    "Click: audition | Shift+click: insert | Enter: insert last chord | 1-7: degree chord | 0: stop | A: arp | B: out-of-scale | Drag cell to slot to assign | Esc: close",0)
 end
 
 -- ============================================================================
@@ -1629,6 +1652,11 @@ local function handleKeyboard()
     lastPlayedRoot=nil; lastPlayedPCs=nil; suggestionCache={}
     lastBorrow=nil; GUI.returnTargets={}; GUI.currentBorrow=nil
     GUI.currentRow=-1; GUI.currentDeg=-1; GUI.trail={}
+  end
+  -- Enter: insert the chord that was auditioned last
+  if ch == 13 and getInsertWhen() ~= "off" and GUI.lastChordNotes and #GUI.lastChordNotes > 0
+     and activeTake() then
+    insertChord(GUI.lastChordNotes, getVelocity())
   end
   if ch == string.byte('b') or ch == string.byte('B') then setBorrowOn(not getBorrowOn()) end
   if ch == string.byte('a') or ch == string.byte('A') then setArpMode(not getArpMode()) end

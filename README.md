@@ -31,6 +31,9 @@ original `AdvancedChordGun.lua` is kept unchanged.
 - **Harmonic Minor** and **Melodic Minor** scales.
 - **Flat note names** -- `Names: Auto / # / b` (Auto spells flat keys with flats).
 - **B** toggles the panel.
+- **Click auditions, Shift+click inserts**, as in Pandabot's ChordGun. **Enter** inserts the
+  chord that was auditioned last. The insert button cycles `INS:SHIFT` (default) /
+  `INS:CLICK` (every click inserts, the original behaviour) / `INS:OFF`.
 
 ### Install this fork with ReaPack
 
